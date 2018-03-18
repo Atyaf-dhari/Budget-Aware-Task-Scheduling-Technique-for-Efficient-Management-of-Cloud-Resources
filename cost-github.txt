@@ -1,0 +1,750 @@
+/*
+	 * Title:        CloudSim Toolkit
+	 * Description:  CloudSim (Cloud Simulation) Toolkit for Modeling and Simulation
+	 *               of Clouds
+	 * Licence:      GPL - http://www.gnu.org/copyleft/gpl.html
+	 *
+	 * Copyright (c) 2009, The University of Melbourne, Australia
+	 */
+
+
+	package org.cloudbus.cloudsim.examples;
+
+	import java.text.DecimalFormat;
+	import java.util.ArrayList;
+	import java.util.Calendar;
+	import java.util.LinkedList;
+	import java.util.List;
+
+	import org.cloudbus.cloudsim.Cloudlet;
+	import org.cloudbus.cloudsim.CloudletSchedulerSpaceShared;
+	import org.cloudbus.cloudsim.CloudletSchedulerTimeShared;
+	import org.cloudbus.cloudsim.Datacenter;
+	import org.cloudbus.cloudsim.DatacenterBroker;
+	import org.cloudbus.cloudsim.DatacenterCharacteristics;
+	import org.cloudbus.cloudsim.Host;
+	import org.cloudbus.cloudsim.Log;
+	import org.cloudbus.cloudsim.Pe;
+	import org.cloudbus.cloudsim.Storage;
+	import org.cloudbus.cloudsim.UtilizationModel;
+	import org.cloudbus.cloudsim.UtilizationModelFull;
+	import org.cloudbus.cloudsim.Vm;
+	import org.cloudbus.cloudsim.VmAllocationPolicySimple;
+	import org.cloudbus.cloudsim.VmSchedulerTimeShared;
+	import org.cloudbus.cloudsim.core.CloudSim;
+	import org.cloudbus.cloudsim.lists.HostList;
+	import org.cloudbus.cloudsim.provisioners.BwProvisionerSimple;
+	import org.cloudbus.cloudsim.provisioners.PeProvisionerSimple;
+	import org.cloudbus.cloudsim.provisioners.RamProvisionerSimple;
+	import org.cloudbus.cloudsim.util.WorkloadFileReader;
+	
+
+
+	/**
+	 * An example showing how to create
+	 * scalable simulations.
+	 */
+	public class Cost {
+
+		/** The cloudlet list. */
+		private static List<Cloudlet> cloudletList,cloudletListcost;
+
+		/** The vmlist. */
+		private static List<Vm> vmlist;
+	private static List<Datacenter> dclist;
+	    
+	    /**
+	     * Datacenter list
+	     */
+	    private static List<DatacenterBroker> brokerlist;
+
+		private static List<Vm> createVM(int userId, int vms) {
+
+			//Creates a container to store VMs. This list is passed to the broker later
+			LinkedList<Vm> list = new LinkedList<Vm>();
+
+			//VM Parameters
+		//	long size = 10000; //image size (MB)
+		//	int ram = 512; //vm memory (MB)
+		//	int mips = 1000;
+			//long bw = 1000;
+			
+			int pesNumber = 1; //number of cpus
+			String vmm = "Xen"; //VMM name
+			//create VMs	
+			
+			Vm[] vm = new Vm[vms];
+		
+			int [] mips={2000,3000,1000,500};			double[] CPUcost ={0.02,0.03,.01,.04}; 
+
+			int [] ram={113,210,170,87};  			double[] RAMcost ={0.01,0.02,.03,.02};
+			int [] bw={60,80,40,50};   			double[] BWcost ={0.01,0.02,.03,.02};
+
+			int [] size={250,250,250,250}; 			double[] STcost ={0.01,0.01,.01,.01};
+			
+			
+			for(int i=0;i<vms;i++){
+				 vm[i] = new Vm(i, userId, mips[i%4], CPUcost[i%4],pesNumber, ram[i%4],RAMcost[i%4], bw[i%4],BWcost[i%4], size[i%4],STcost[i%4], vmm, new CloudletSchedulerTimeShared());
+				
+			
+				list.add(vm[i]);
+
+				
+			}
+			
+			return list;
+		}
+		
+		private static List<Cloudlet> createCloudlet(int userId, int cloudlets){
+			// Creates a container to store Cloudlets
+			LinkedList<Cloudlet> list = new LinkedList<Cloudlet>();
+
+			
+			
+			
+			//cloudlet parameters
+			//long length = 1000;
+			long  []length ={4000,200000,30000,100000,23000,220000,170000,6000,2500,30000,12000};
+
+			
+			long[] fileSize = {30000000,4000, 799, 100,250,10000000};
+			long outputSize = 300;
+			int pesNumber = 1;
+			UtilizationModel utilizationModel = new UtilizationModelFull();
+
+			Cloudlet[] cloudlet = new Cloudlet[cloudlets];
+			int ded=0;
+			int [] mips={500,500,500,500};			double[] CPUcost ={0.02,0.03,.01,.04}; 
+
+			int [] ram={111,20,20,27};  			double[] RAMcost ={0.01,0.02,.03,.02};
+			int [] bw={40,40,40,40};   			double[] BWcost ={0.01,0.02,.03,.02};
+
+			int [] size={250,250,250,250}; 			double[] STcost ={0.01,0.01,.01,.01};
+			
+			
+			double costt= 0; 		
+			
+			for(int i=0;i<cloudlets;i++)
+			{
+				costt=((length[i%10]/mips[i%4])*CPUcost[i%4])+(((fileSize[i%6]+outputSize)/bw[i%4])*BWcost[i%4])+
+				        (((fileSize[i%6]+outputSize)/ram[i%4])*RAMcost[i%4]) +(((fileSize[i%6]+outputSize)/size[i%4])*STcost[i%4]);
+					cloudlet[i] = new Cloudlet(i, length[i%11], ded,costt,pesNumber, fileSize[i%6], outputSize, utilizationModel, utilizationModel, utilizationModel);
+				// setting the owner of these Cloudlets
+					//Log.printLine(length[i%10]+" "+mips[i%3]+" "+costcpu[i%3]+" "+fileSize[i%6]+outputSize+" "+bw[i%3]+" "+costbw[i%3]+
+			      //  ram[i%3]+" "+costram[i%3] +" "+st[i%3]+" "+costst[i%3]);
+				cloudlet[i].setUserId(userId);
+		
+				
+				list.add(cloudlet[i]);
+				}
+
+			return list;
+			}
+
+	 //END CLOUDLET CLASS
+	  	
+	 
+		private static void getCloudletListcost(List<Cloudlet> clist)
+		{
+			int min=0;
+			for (int i=0; i<clist.size();i++)
+				//if (clist.get(i).getCloudletLength()< clist.get(min).getCloudletLength())
+				//	min=i;
+			{cloudletListcost.add(clist.get(i));
+			clist.remove(min);
+			if (clist.size()!=0)
+				getCloudletListcost(clist);}
+		}
+		
+		
+		// method to find the average waiting time in a virtual machine
+			private static double VmArt(List<Cloudlet> list, int VmId)
+			{
+				int c = 0;	 //int k=0;
+
+				double art = 0; 
+				for(int i=0;i<list.size();i++)
+					if (list.get(i).getVmId() == VmId)
+					{                                       
+						art = art + list.get(i).getExecStartTime();
+					  c++;
+						
+					}
+					art =  art / c; 
+				return art;
+			}
+			
+			
+			private static double VmRes(List<Cloudlet> list, int VmId)
+			{
+				int c = 0;	 //int k=0;
+
+				double res = 0; 
+				for(int i=0;i<list.size();i++)
+					if (list.get(i).getVmId() == VmId)
+					{                                       
+						res = res + list.get(i).getFinishTime()-list.get(i).getSubmissionTime();
+						   c++;
+						
+					}
+								
+				res =  res / c; 
+				return res;
+			}
+			
+			             
+			private static double VmMakespane(List<Cloudlet> list, int VmId)   
+			{
+				double mkspane = 0; 
+				for(int i=0;i<list.size();i++)                   
+					if (list.get(i).getVmId() == VmId)
+						if (list.get(i).getFinishTime() > mkspane)
+							mkspane =  list.get(i).getFinishTime(); 
+				return mkspane;
+			}
+			
+		
+		
+
+		////////////////////////// STATIC METHODS ///////////////////////
+
+		/**
+		 * Creates main() to run this example
+		 */
+		public static void main(String[] args) {
+			for(int exp=1;exp<=1;exp++){
+	        	try {
+	        		
+	        		Log.printLine("Starting CloudSim COST Example  exp"+exp+"...");
+		//	Log.printLine("Starting CloudSimExample6...");
+
+		//	try {
+				// First step: Initialize the CloudSim package. It should be called
+				// before creating any entities.
+				int num_user = 1;   // number of grid users
+				Calendar calendar = Calendar.getInstance();
+				boolean trace_flag = false;  // mean trace events
+
+				// Initialize the CloudSim library
+				CloudSim.init(num_user, calendar, trace_flag);
+				//int c[]=new int[20];
+
+				// Second step: Create Datacenters
+				//Datacenters are the resource providers in CloudSim. We need at list one of them to run a CloudSim simulation
+				@SuppressWarnings("unused")
+				Datacenter datacenter0 = createDatacenter("Datacenter_0");
+			//	@SuppressWarnings("unused")
+				//Datacenter datacenter11 = createDatacenter("Datacenter_11");
+			//Datacenter datacenter1 = createDatacenter("Datacenter_1");
+
+				//Third step: Create Broker
+				DatacenterBroker broker = createBroker();
+				int brokerId = broker.getId();
+
+				
+				//DatacenterBroker broker2 = createBroker();
+				//int brokerId2 = broker2.getId();
+
+				
+				//Fourth step: Create VMs and Cloudlets and send them to broker
+				vmlist = createVM(brokerId,5); //creating 20 vms
+
+					
+
+	   			
+				//vmlist = createVM(brokerId+1,10); //creating 20 vms
+				cloudletList = createCloudlet(brokerId,250); // creating 40 cloudlets
+	   		cloudletListcost = new LinkedList<Cloudlet>();
+			getCloudletListcost(cloudletList);  
+		
+			
+				broker.submitVmList(vmlist);
+				broker.submitCloudletList(cloudletListcost);
+				// calculate sum and average of budget
+				double sum=0;double av=0;
+				
+				for (int i=0;i<cloudletListcost.size();i++)
+					
+				sum+=cloudletListcost.get(i).getcostt();
+				av=sum/cloudletListcost.size();
+				Log.printLine("sum = "+sum+ "av="  +av);
+				// scheduling bedin....
+				double min=0;int vmid=0; double[] loadcpu=new double[50];double[] loadbw=new double[50];double ECTINVM=0;
+				int [] vmstate=new int [50];int size=cloudletListcost.size();				int [] taskstate=new int [4000];
+int vmmeet=0;double comp=0;
+				Cloudlet cloudlet;
+
+				for (int i=0;i<cloudletListcost.size();i++)
+				{				
+					// check vm meet user cost
+					for(int j=0; j<vmlist.size();j++)
+					{ 
+						ECTINVM=((cloudletListcost.get(i).getCloudletLength()/vmlist.get(j).getMips())*vmlist.get(j).getCPUcost())
+								+(((cloudletListcost.get(i).getCloudletFileSize()+cloudletListcost.get(i).getCloudletOutputSize())/vmlist.get(j).getBw())*vmlist.get(j).getBWcost())+
+				        		       ( ((cloudletListcost.get(i).getCloudletFileSize()+cloudletListcost.get(i).getCloudletOutputSize())/vmlist.get(j).getRam())*vmlist.get(j).getRAMcost()) +
+				        		        (((cloudletListcost.get(i).getCloudletFileSize()+cloudletListcost.get(i).getCloudletOutputSize())/vmlist.get(j).getSize())*vmlist.get(j).getSTcost()); 
+								
+					//	Log.printLine("\nect in vm "+vmlist.get(j).getId() +"= "+ECTINVM+"  ECT USER= "+cloudletListcost.get(i).getcostt());
+						if (cloudletListcost.get(i).getcostt()>=ECTINVM)
+							
+							{
+							vmstate[vmlist.get(j).getId()]= 0;
+							vmmeet++;
+							Log.printLine("\nmeet In vm "+vmlist.get(j).getId());
+							}
+						else
+							{vmstate[vmlist.get(j).getId()]= 1;Log.printLine("\n Not meet In vm "+vmlist.get(j).getId());}
+					}
+			if(vmmeet>0)
+					{
+				//check task cost with av
+				if(cloudletListcost.get(i).getcostt()>av)
+				{
+					
+					// check file and length
+					
+					if(cloudletListcost.get(i).getCloudletLength()>cloudletListcost.get(i).getCloudletFileSize())
+					{
+						//check vms meet cost
+						Log.printLine("Av. ECR= "+av+" ECR = "+cloudletListcost.get(i).getcostt() +" length= "+cloudletListcost.get(i).getCloudletLength()+"  file size= "+cloudletListcost.get(i).getCloudletFileSize()
+								+"\n cost of task > av &&  file < length");
+						for(int j=0; j<vmlist.size();j++)
+						if(vmstate[vmlist.get(j).getId()]==0)
+						
+						{	min= loadcpu[vmlist.get(j).getId()]+(cloudletListcost.get(i).getCloudletLength()/vmlist.get(j).getMips());break;}
+						
+						for(int j=0; j<vmlist.size();j++)
+						{
+							
+							 comp=loadcpu[vmlist.get(j).getId()]+(cloudletListcost.get(i).getCloudletLength()/vmlist.get(j).getMips());
+							Log.printLine(" \nmin completion= "+min+"  vm "+vmlist.get(j).getId()+"  completion= "+comp);
+							if (min >(loadcpu[vmlist.get(j).getId()]+(cloudletListcost.get(i).getCloudletLength()/vmlist.get(j).getMips()))&&
+									vmstate[vmlist.get(j).getId()]==0)
+								
+								{							
+
+								min=loadcpu[vmlist.get(j).getId()]+(cloudletListcost.get(i).getCloudletLength()/vmlist.get(j).getMips());
+								vmid=vmlist.get(j).getId();
+								}
+						}
+					}
+					else   // file>length
+							{ 
+						Log.printLine("Av. ECR= "+av+" ECR = "+cloudletListcost.get(i).getcostt() +" length= "+cloudletListcost.get(i).getCloudletLength()+"  file size= "+cloudletListcost.get(i).getCloudletFileSize()
+								+" \ncost of task > av &&  file > length");
+						for(int j=0; j<vmlist.size();j++)
+							if(vmstate[vmlist.get(j).getId()]==0)
+							{	min=loadbw[vmlist.get(j).getId()]+(cloudletListcost.get(i).getCloudletFileSize()+cloudletListcost.get(i).getCloudletOutputSize()/vmlist.get(j).getBw());break;}
+						
+										for(int j=0; j<vmlist.size();j++)
+											
+										{   double datatransfer=loadbw[vmlist.get(j).getId()]+(cloudletListcost.get(i).getCloudletFileSize()+cloudletListcost.get(i).getCloudletOutputSize()/vmlist.get(j).getBw());
+										Log.printLine(" \nmin communication= "+min+"  vm"+vmlist.get(j).getId()+"   communication= "+datatransfer);	
+										if (min>(loadbw[vmlist.get(j).getId()]+(cloudletListcost.get(i).getCloudletFileSize()+cloudletListcost.get(i).getCloudletOutputSize()/vmlist.get(j).getBw()))&&vmstate[vmlist.get(j).getId()]==0)
+												
+											{
+
+												min=loadbw[vmlist.get(j).getId()]+(cloudletListcost.get(i).getCloudletFileSize()+cloudletListcost.get(i).getCloudletOutputSize()/vmlist.get(j).getBw());
+												vmid=vmlist.get(j).getId();
+												}		
+							          }
+						  }
+					
+				}	
+				//cost of task less av
+				else
+					if(cloudletListcost.get(i).getCloudletLength()>cloudletListcost.get(i).getCloudletFileSize())
+					{
+						
+						Log.printLine("Av. ECR= "+av+" ECR = "+cloudletListcost.get(i).getcostt() +" length= "+cloudletListcost.get(i).getCloudletLength()+"  file size= "+cloudletListcost.get(i).getCloudletFileSize()
+								+"\n cost of task < av &&  file < length");
+						//check vm have less cost cpu
+						for(int j=0; j<vmlist.size();j++)
+							if(vmstate[vmlist.get(j).getId()]==0)
+						
+						{min= vmlist.get(j).getCPUcost()*(cloudletListcost.get(i).getCloudletLength()/vmlist.get(j).getMips());break;}
+						for(int j=0; j<vmlist.size();j++)
+							
+						{ double costcpu=vmlist.get(j).getCPUcost()*(cloudletListcost.get(i).getCloudletLength()/vmlist.get(j).getMips());
+						Log.printLine(" \nmin cost cpu= "+min+"  vm "+vmlist.get(j).getId()+"  cost cpu= "+costcpu);	
+						if (min>(vmlist.get(j).getCPUcost()*(cloudletListcost.get(i).getCloudletLength()/vmlist.get(j).getMips()))&&vmstate[vmlist.get(j).getId()]==0)
+								
+								{							
+
+								vmid=vmlist.get(j).getId();
+								min=vmlist.get(j).getCPUcost()*(cloudletListcost.get(i).getCloudletLength()/vmlist.get(j).getMips());
+							
+								}
+						}
+					}
+					else        	//check vm have less cost bw
+
+							{ 
+						Log.printLine("Av. ECR= "+av+" ECR = "+cloudletListcost.get(i).getcostt() +" length= "+cloudletListcost.get(i).getCloudletLength()+"  file size= "+cloudletListcost.get(i).getCloudletFileSize()
+								+"\n cost of task < av &&  file> length");
+						for(int j=0; j<vmlist.size();j++)
+							if(vmstate[vmlist.get(j).getId()]==0)
+							{	min=vmlist.get(j).getBWcost()*((cloudletListcost.get(i).getCloudletOutputSize()+
+									                             cloudletListcost.get(i).getCloudletFileSize())/vmlist.get(j).getBw());break;}
+										for(int j=0; j<vmlist.size();j++)
+										{ double daratrancost=vmlist.get(j).getBWcost()* ((cloudletListcost.get(i).getCloudletFileSize()+cloudletListcost.get(i).getCloudletOutputSize())/vmlist.get(j).getBw());
+										Log.printLine(" \nmin cost BW= "+min+"  vm  "+vmlist.get(j).getId()+" cost BW= "+daratrancost);	
+										if (min>=(vmlist.get(j).getBWcost()* ((cloudletListcost.get(i).getCloudletFileSize()+cloudletListcost.get(i).getCloudletOutputSize())/vmlist.get(j).getBw()) )&&vmstate[vmlist.get(j).getId()]==0)
+												
+												{											
+
+												vmid=vmlist.get(j).getId();
+												min=vmlist.get(j).getBWcost()* ((cloudletListcost.get(i).getCloudletFileSize()+cloudletListcost.get(i).getCloudletOutputSize())/vmlist.get(j).getBw());
+												
+												}		
+							          }
+										
+						  }
+					}
+			else if (vmmeet==0)
+				// violation task
+			{
+				
+				if(cloudletListcost.get(i).getCloudletLength()>cloudletListcost.get(i).getCloudletFileSize())
+				{
+					
+					Log.printLine("Av. ECR= "+av+" ECR = "+cloudletListcost.get(i).getcostt() +" length= "+cloudletListcost.get(i).getCloudletLength()+"  file size= "+cloudletListcost.get(i).getCloudletFileSize()
+							+" \ncost of task < av &&  file < length"+"   violation task----------------------------");
+					min= vmlist.get(0).getCPUcost()*(cloudletListcost.get(i).getCloudletLength()/vmlist.get(0).getMips());
+					for(int j=0; j<vmlist.size();j++)
+						
+					{ double costcpu=vmlist.get(j).getCPUcost()*(cloudletListcost.get(i).getCloudletLength()/vmlist.get(j).getMips());
+						//double max=(vmlist.get(j).getCPUcost()*(cloudletListcost.get(i).getCloudletLength()/vmlist.get(j).getMips()));
+					Log.printLine(" \nmin cost cpu= "+min+"  vm "+vmlist.get(j).getId()+"  cost cpu= "+costcpu);	
+					if (min>(costcpu))
+							
+							{		
+
+							vmid=vmlist.get(j).getId();
+							min=vmlist.get(j).getCPUcost()*(cloudletListcost.get(i).getCloudletLength()/vmlist.get(j).getMips());
+						//	Log.printLine("\n violation in vm "+vmlist.get(j).getId());
+							}
+					}
+				}
+				
+				else        	//check vm have less cost bw
+					if(cloudletListcost.get(i).getCloudletLength()<cloudletListcost.get(i).getCloudletFileSize())
+
+						{ 
+					Log.printLine(" length= "+cloudletListcost.get(i).getCloudletLength()+"  file size= "+cloudletListcost.get(i).getCloudletFileSize()
+							+" cost of task < av &&  file> length"+"   violation task----------------------------");
+						min=vmlist.get(0).getBWcost()*((cloudletListcost.get(i).getCloudletOutputSize()+
+								                             cloudletListcost.get(i).getCloudletFileSize())/vmlist.get(0).getBw());
+									for(int j=0; j<vmlist.size();j++)
+									{ double datatrancost=vmlist.get(j).getBWcost()* ((cloudletListcost.get(i).getCloudletFileSize()+cloudletListcost.get(i).getCloudletOutputSize())/vmlist.get(j).getBw());
+									Log.printLine(" \nmin cost BW= "+min+"  vm "+vmlist.get(j).getId()+"  cost BW= "+ datatrancost);	
+	
+									if (min>=datatrancost)
+											
+											{		
+
+											vmid=vmlist.get(j).getId();
+											min=vmlist.get(j).getBWcost()* ((cloudletListcost.get(i).getCloudletFileSize()+cloudletListcost.get(i).getCloudletOutputSize())/vmlist.get(j).getBw());
+										
+											}		
+						          }
+									
+					  }
+				}
+				
+			
+				broker.bindCloudletToVm(cloudletListcost.get(i).getCloudletId(),vmid); 
+				
+				if(cloudletListcost.get(i).getCloudletLength()>cloudletListcost.get(i).getCloudletFileSize() )
+					loadcpu[vmid]+=cloudletListcost.get(i).getCloudletLength()/vmlist.get(vmid).getMips();
+				
+				if(cloudletListcost.get(i).getCloudletLength()<cloudletListcost.get(i).getCloudletFileSize() )
+					loadbw[vmid]+=cloudletListcost.get(i).getCloudletFileSize()+cloudletListcost.get(i).getCloudletOutputSize()/vmlist.get(vmid).getBw();
+				
+				Log.printLine("send cloudlet# "+cloudletListcost.get(i).getCloudletId()+"  to vm# "+vmid +"  LOAD=" +loadcpu[vmid]+" BAND= "+loadbw[vmid]+"..............\n");
+				vmmeet=0;
+		          // cloudletListcost.remove(i);
+
+					
+				}	
+							
+
+				//broker2.submitVmList(vmlist);
+				//broker2.submitCloudletList(cloudletList);
+				
+				// Fifth step: Starts the simulation
+				CloudSim.startSimulation();
+				// Final step: Print results when simulation is over
+				List<Cloudlet> newList = broker.getCloudletReceivedList();
+
+				int failuer=0;		double allactual=0;
+int profit=0;double realcost=0;		 double totalcost=0;
+
+				for (int i = 0; i < newList.size(); i++) {
+					
+					cloudlet = newList.get(i);
+					for( int j= 0;j<vmlist.size();j++)
+						if(vmlist.get(j).getId()==cloudlet.getVmId())
+					{  realcost= ((cloudlet.getCloudletLength()/vmlist.get(j).getMips())*vmlist.get(j).getCPUcost())
+					+(((cloudlet.getCloudletFileSize()+cloudlet.getCloudletOutputSize())/vmlist.get(j).getBw())*vmlist.get(j).getBWcost())+
+	 		        (((cloudlet.getCloudletFileSize()+cloudlet.getCloudletOutputSize())/vmlist.get(j).getRam())*vmlist.get(j).getRAMcost()) +
+	 		        (((cloudlet.getCloudletFileSize()+cloudlet.getCloudletOutputSize())/vmlist.get(j).getSize())*vmlist.get(j).getSTcost()); 
+				
+				
+					
+							if((realcost) > cloudlet.getcostt())
+							{  failuer++; 
+							Log.print("\n cloudlet  id   "+cloudlet.getCloudletId()+"  vmid= "+cloudlet.getVmId()+"\nECR= "+ cloudlet.getcostt()+"  Gain= "+ realcost);
+							taskstate[cloudlet.getCloudletId()]=1;
+							}
+					} 
+					 profit+=cloudlet.getcostt()-realcost;
+					 totalcost+=realcost;
+					
+					allactual+=cloudlet.getActualCPUTime();
+				}
+				
+				
+				
+				
+				CloudSim.stopSimulation();
+				
+				printCloudletList(newList);
+				//printCloudletList(newList2);
+				
+			
+				double sumresp=0;double maxmake=0;double summips=0;double sumlength=0;
+	        	
+	        		
+	        	Log.printLine("\n============================================================================\n");
+
+	        	for (int a=0; a<vmlist.size();a++)
+	        		{Log.printLine("Average"
+	        				+ " Response Time of Vm " + vmlist.get(a).getId() + "   =  " + VmRes( newList, vmlist.get(a).getId()));
+	        		 sumresp+=  VmRes( newList, vmlist.get(a).getId());}
+	    		Log.printLine("\n=============================================================================\n");
+	        	double summak=0; double VMHOUR=0;
+	        	double allvmhour=0;
+	        	for (int a=0; a<vmlist.size();a++)
+	        	{	
+	        	summak+=VmMakespane( newList, vmlist.get(a).getId());VMHOUR=VmMakespane( newList, vmlist.get(a).getId())/3600;
+	        	Log.printLine("Makespane of Vm-" + vmlist.get(a).getId() + "   =  " + VmMakespane( newList, vmlist.get(a).getId())+"\t\t vmhour= "+VMHOUR);
+	        	 if (maxmake < VmMakespane( newList, vmlist.get(a).getId()))
+	    			 maxmake= VmMakespane( newList, vmlist.get(a).getId());
+	        	 summips+=vmlist.get(a).getMips();allvmhour+=VMHOUR;
+	        	 }
+	        //	int sizemetded=newList.size()-failuer;
+	        	for(int d=0;d<newList.size();d++)
+	        	{if (taskstate[d]!=1)
+	        	{sumlength+=newList.get(d).getCloudletLength();
+	        	//Log.print("  \n   "+newList.get(d).getCloudletId()+"   ");
+	        	}}
+
+	        	double avmakespan =summak/vmlist.size();
+	        	double avsrponse=sumresp/vmlist.size();
+	        	
+	        	double averageresourceutilization=summak/( maxmake*vmlist.size());
+	        	double gurantee=(double)(newList.size()-failuer)/newList.size();
+	        	double UV=sumlength/summips;
+	        	
+	        	double throughput= allactual/newList.size();
+	        	
+	        	Log.printLine("\n\nav makespan= "+avmakespan+"\nav response="+avsrponse+"\n resources utilization= "+UV);
+	        	Log.printLine("\n\n   ---------------- no. of nov= "+ failuer+"\nprovider profiet = "+ profit+
+	        			"\nTotal cost = "+ totalcost+"\n all vm hours= "+allvmhour);
+	        	Log.printLine("CloudSimExample Cost finished!");
+			}
+			catch (Exception e)
+			{
+				e.printStackTrace();
+				Log.printLine("The simulation has been terminated due to an unexpected error");
+			
+		}
+			
+			}
+		
+		}
+		private static Datacenter createDatacenter(String name){
+
+			// Here are the steps needed to create a PowerDatacenter:
+			// 1. We need to create a list to store one or more
+			//    Machines
+			List<Host> hostList = new ArrayList<Host>();
+
+			// 2. A Machine contains one or more PEs or CPUs/Cores. Therefore, should
+			//    create a list to store these PEs before creating
+			//    a Machine.
+			List<Pe> peList1 = new ArrayList<Pe>();
+
+			int mips = 10000;
+
+			// 3. Create PEs and add these into the list.
+			//for a quad-core machine, a list of 4 PEs is required:
+			peList1.add(new Pe(0, new PeProvisionerSimple(mips))); // need to store Pe id and MIPS Rating
+			peList1.add(new Pe(1, new PeProvisionerSimple(mips)));
+			peList1.add(new Pe(2, new PeProvisionerSimple(mips)));
+			peList1.add(new Pe(3, new PeProvisionerSimple(mips)));
+
+			//Another list, for a dual-core machine
+			List<Pe> peList2 = new ArrayList<Pe>();
+
+			peList2.add(new Pe(0, new PeProvisionerSimple(mips)));
+			peList2.add(new Pe(1, new PeProvisionerSimple(mips)));
+
+			//4. Create Hosts with its id and list of PEs and add them to the list of machines
+			int hostId=0;
+			int ram = 16384; //host memory (MB)
+			long storage = 1000000; //host storage
+			int bw = 100000;
+			 
+		//	for ( hostId=0;hostId<2;hostId++)
+			hostList.add(
+	    			new Host(
+	    				hostId,
+	    				new RamProvisionerSimple(ram),
+	    				new BwProvisionerSimple(bw),
+	    				storage,
+	    				peList1,
+	    				new VmSchedulerTimeShared(peList1)
+	    			)
+	    		); // This is our first machine
+
+			hostId++;
+
+			hostList.add(
+	    			new Host(
+	    				hostId,
+	    			new RamProvisionerSimple(ram),
+	    				new BwProvisionerSimple(bw),
+	    				storage,
+	    			peList2,
+	    				new VmSchedulerTimeShared(peList2)
+	    			)
+	    		); // Second machine
+
+
+			//To create a host with a space-shared allocation policy for PEs to VMs:
+			//hostList.add(
+	    	//		new Host(
+	    	//			hostId,
+	    	//			new CpuProvisionerSimple(peList1),
+	    	//			new RamProvisionerSimple(ram),
+	    	//			new BwProvisionerSimple(bw),
+	    	//			storage,
+	    	//			new VmSchedulerSpaceShared(peList1)
+	    	//		)
+	    	//	);
+
+			//To create a host with a oportunistic space-shared allocation policy for PEs to VMs:
+			//hostList.add(
+	    	//		new Host(
+	    	//			hostId,
+	    	//			new CpuProvisionerSimple(peList1),
+	    	//			new RamProvisionerSimple(ram),
+	    	//			new BwProvisionerSimple(bw),
+	    	//			storage,
+	    	//			new VmSchedulerOportunisticSpaceShared(peList1)
+	    	//		)
+	    	//	);
+			
+				 
+
+
+
+			// 5. Create a DatacenterCharacteristics object that stores the
+			//    properties of a data center: architecture, OS, list of
+			//    Machines, allocation policy: time- or space-shared, time zone
+			//    and its price (G$/Pe time unit).
+			String arch = "x86";      // system architecture
+			String os = "Linux";          // operating system
+			String vmm = "Xen";
+			double time_zone = 10.0;         // time zone this resource located
+			double cost = 3.0;              // the cost of using processing in this resource
+			double costPerMem = 0.05;		// the cost of using memory in this resource
+			double costPerStorage = 0.1;	// the cost of using storage in this resource
+			double costPerBw = 0.1;			// the cost of using bw in this resource
+			LinkedList<Storage> storageList = new LinkedList<Storage>();	//we are not adding SAN devices by now
+
+			DatacenterCharacteristics characteristics = new DatacenterCharacteristics(
+	                arch, os, vmm, hostList, time_zone, cost, costPerMem, costPerStorage, costPerBw);
+
+
+			// 6. Finally, we need to create a PowerDatacenter object.
+			Datacenter datacenter = null;
+			try {
+				datacenter = new Datacenter(name, characteristics, new VmAllocationPolicySimple(hostList), storageList, 0);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+
+			return datacenter;
+		}
+
+		//We strongly encourage users to develop their own broker policies, to submit vms and cloudlets according
+		//to the specific rules of the simulated scenario
+		private static DatacenterBroker createBroker(){
+
+			DatacenterBroker broker = null;
+			try {
+				broker = new DatacenterBroker("Broker");
+			} catch (Exception e) {
+				e.printStackTrace();
+				return null;
+			}
+			return broker;
+		}
+		
+		//private static DatacenterBroker createBroker2(){
+		//	DatacenterBroker broker2 = null;
+			//try {
+
+				//broker2 = new DatacenterBroker("Broker2");
+		//	} catch (Exception e) {
+			//	e.printStackTrace();
+				//return null;
+			//}
+			//return broker2;
+//		}
+		/**
+		 * Prints the Cloudlet objects
+		 * @param list  list of Cloudlets
+		 */
+		private static void printCloudletList(List<Cloudlet> list) {
+			int size = list.size();double mips=0;
+			Cloudlet cloudlet;
+
+			String indent = "    ";
+			Log.printLine();
+			Log.printLine("========== OUTPUT ==========");
+			Log.printLine("Cloudlet ID" + indent + "STATUS" + indent +
+					"Data center ID" + indent + "VM ID " + indent +"   "+indent+ "        Time" + indent + "Start Time" + indent + "Finish Time"+ indent+ indent+indent+"  len"+ indent+indent+" file size"
+					+indent+" budget");
+			
+
+			DecimalFormat dft = new DecimalFormat("###.##");
+			for (int i = 0; i < size; i++) {
+				cloudlet = list.get(i);
+				Log.print(indent + cloudlet.getCloudletId() + indent + indent);
+				for (int j = 0; j < vmlist.size(); j++) 
+					if(cloudlet.getVmId()==vmlist.get(j).getId())
+						 mips=vmlist.get(j).getMips();
+				
+
+				if (cloudlet.getCloudletStatus() == Cloudlet.SUCCESS){
+					Log.print("SUCCESS");
+
+					Log.printLine( indent + indent + cloudlet.getResourceId() + indent + indent + indent+indent+cloudlet.getVmId() +
+							indent+  indent +"   "+indent+indent+ dft.format(cloudlet.getActualCPUTime()) +
+							indent + indent + dft.format(cloudlet.getExecStartTime())+ indent + indent + indent + dft.format(cloudlet.getFinishTime())+indent+indent+indent+cloudlet.getCloudletLength()+indent+indent+indent
+							+indent+cloudlet.getCloudletFileSize()
+							+indent+indent+cloudlet.getcostt());
+				}
+			}
+
+		}
+		
+		
+	}
+
+
+
